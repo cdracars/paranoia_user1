@@ -1,0 +1,77 @@
+<?php
+/**
+ * @file
+ * - Hides the paranoia_user1 module from the modules page.
+ * - Prevents user/1 editing.
+ *
+ * - This code is pulled from the paranoia module.
+ * - http://drupal.org/project/paranoia
+ */
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Hide Paranoia User 1 from module admin form.
+ */
+function paranoia_user1_form_system_modules_alter(&$form, &$form_state) {
+  $hidden_modules = module_invoke_all('paranoia_hide_modules');
+  foreach ($hidden_modules as $module => $package) {
+    // Unset instead of using #access because #access => FALSE shows an empty
+    // table row.
+    if (isset($form['modules'][$module])) {
+      unset($form['modules'][$module]);
+    }
+    // Adds support for module_filter.
+    if (isset($form['modules'][$package][$module])) {
+      unset($form['modules'][$package][$module]);
+    }
+  }
+  // Invoke custom validation function to disable banned modules on submit.
+  $form['#validate'][] = 'paranoia_user1_module_validate';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function paranoia_user1_form_user_profile_form_alter(&$form, &$form_state) {
+  if ($form_state['user']->uid === '1') {
+    global $user;
+    // Allow user/1 to edit own details.
+    if ($user->uid != 1) {
+      drupal_set_message(t('You must login as this user (user/1) to modify the name, email address, and password for this account.'), 'warning');
+      $form['account']['name']['#access'] = FALSE;
+      $form['account']['mail']['#access'] = FALSE;
+      $form['account']['pass']['#access'] = FALSE;
+      $form['account']['current_pass']['#access'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Form validation prevents granting permissions to untrusted roles.
+ *
+ * @see paranoia_form_user_admin_permissions_alter()
+ */
+function paranoia_user1_permissions_validate($form, &$form_state) {
+  $permissions = module_invoke_all('permission');
+  foreach ($permissions as $machine_name => $attributes) {
+    if (!empty($attributes['restrict access'])) {
+      if (!empty($form_state['values'][1][$machine_name])) {
+        form_set_error('1][' . $machine_name, t('The permission %name can affect site security and should not be granted to anonymous users.', array('%name' => $attributes['title'])));
+      }
+      if (!empty($form_state['values'][2][$machine_name])) {
+        form_set_error('2][' . $machine_name, t('The permission %name can affect site security and should not be granted to authenticated users.', array('%name' => $attributes['title'])));
+      }
+
+    }
+  }
+}
+
+/**
+ * Implements hook_paranoia_hide().
+ */
+function paranoia_paranoia_hide_modules() {
+  return array(
+    'paranoia_user1' => 'Other',
+  );
+}
