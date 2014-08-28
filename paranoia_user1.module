@@ -26,8 +26,6 @@ function paranoia_user1_form_system_modules_alter(&$form, &$form_state) {
       unset($form['modules'][$package][$module]);
     }
   }
-  // Invoke custom validation function to disable banned modules on submit.
-  $form['#validate'][] = 'paranoia_user1_module_validate';
 }
 
 /**
@@ -70,7 +68,7 @@ function paranoia_user1_permissions_validate($form, &$form_state) {
 /**
  * Implements hook_paranoia_hide().
  */
-function paranoia_paranoia_hide_modules() {
+function paranoia_user1_paranoia_hide_modules() {
   return array(
     'paranoia_user1' => 'Other',
   );
